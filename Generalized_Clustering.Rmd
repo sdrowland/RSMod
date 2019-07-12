@@ -1,0 +1,212 @@
+---
+title: "Generalized Clustering"
+output: html_document
+---
+
+```{r,include=FALSE}
+##LIBRARIES ---- ##
+library(RSMod)
+library(fpc)
+library(plyr)
+library(ggplot2)
+library(clusterSim)
+library(reshape)
+library(reshape2)
+library(rgl)
+
+options(stringsAsFactors  =  FALSE)
+```
+
+## READ IN DATA FILES
+```{r}
+# ## ALL FILES SHOULD BE TRIMMED TO EXCLUDE UNWANTED DATA AND CHARACTERS. SEE SAMPLE DATA SETS FOR EXAMPLE OF FORMATTING. (GENES BY ROW, REPLICATES BY COLUMN).
+# data=read.csv("",header=T) ## PRIMARY DATA.
+# eqtl=read.csv("All-Week-DGE-Final.csv",header=T) ## SUBSETTING DATA IF USED.
+
+## SAMPLE DATA SETS
+data(IL_Counts)
+data(eQTL_Set)
+```
+
+```{r}
+# Log Transform and Normalize Data ----
+# Subset if necessary, this can take some time.
+# (trans=rna.seq data, sub=subset list (Default = no subest)).
+cluster.set=data_norm(trans = data, sub = eqtl)
+```
+
+```{r}
+## BH-SNE Mapping ----
+## DATA.SET SHOULD ALWAYS BE cluster.set OUTPUT.
+## PERPLEXITY (perp) IS THE INITIAL GUESS OF AVERAGE SIZE OF NEIGHBORHOOD FOR EACH POINT. RANGES 5-50.
+## INITIAL_DIMS CAN NOW BE SET TO EITHER 2 OR 3 DIMENSIONS.
+## THETA SETS SPEED/ACCURACY (tha). LOWER IS MORE ACCURATE BUT TAKES LONGER.
+## DIMS (dim) IS NUMBER OF FINAL DIMENSIONS. PCA (pc) SETS WHETHER TO DO A PCA ANALYSIS PRIOR TO BH-SNE.
+## SEED (seed) SETS SEED FOR REPRODUCABILITY.
+cluster.matrix=clusterSNE(data.set=cluster.set,perp=30,dim=3,tha=0.5,pc=F,iter=1000,seed=0, lying = 500)
+```
+
+```{r}
+## Select Best Cutoff Value ----
+
+cutoffTest=clusteringOPtions(cluster=cluster.matrix,dim=3)
+print(cutoffTest)
+```
+
+
+```{r}
+## Module extraction ----
+## (cluster=cluster.matrix,cutoff=number for neighborhood size | DIM SHOULD EQUAL THE NUMBER OF DIMENSIONS | Choose cutoff from cutoffTest).
+
+modules=clusteringOptics(cluster=cluster.matrix,cutoff=25,dim=3)
+```
+
+```{r,fig.width=8,fig.height=6}
+## Showtime mapping. ----
+x=showtimeMapping(base=cluster.matrix,clusters=modules,dim=3)
+# widget=rglwidget()
+
+```
+
+```{r}
+## Single/Multi module overlay. ----
+## Base = original BH-SNE output, overlay = ,n = # of modules (max of 4 for 2D), n = modules of interest (for 3D)
+ModOverlay(base=cluster.matrix,clusters=modules,n=c(1,3,4),dim=3)
+# write.csv(modules,"Combined Modules Gene List BH-SNE Result.csv")
+```
+
+```{r}
+## Overlaying specific genes onto the map.
+## Still in beta.
+# overMap=read.csv("bHLH-Only.csv",header=T)
+# indOver(set=overMap,overlay=modules)
+
+# write.csv(modules,"Module List.csv")
+# modules2=modules[modules$colors == 6,]
+# data2=data[which(rownames(cluster.set) %in% rownames(modules2)),]
+```
+
+
+```{r}
+##----Module Transcript Patterns----
+mod.num=length(unique(modules$colors))-1
+
+for(k in 1:mod.num){
+  list=c(k)
+  
+  Rdis.data.sne=modules
+  sub=as.data.frame(data$itag)
+  
+  Rdis.data.sne.sub=Rdis.data.sne[which(Rdis.data.sne$colors %in% list),]
+  Rdis.data.sne.sub$itag=rownames(Rdis.data.sne.sub)
+  
+  colnames(eqtl)=c("itag")
+  Rdis.data.sne.sub=Rdis.data.sne.sub[Rdis.data.sne.sub$itag %in% eqtl$itag,]
+  pattern.sne=data[which(data$itag %in% Rdis.data.sne.sub$itag),]
+  
+  rownames(pattern.sne)=pattern.sne$itag
+  pattern.sne=pattern.sne[,c(2:ncol(pattern.sne))]
+  
+  pattern.sne=log2(pattern.sne);pattern.sne=as.matrix(pattern.sne)
+  pattern.sne[is.infinite(pattern.sne)]=0
+  
+  pattern.sne=data.Normalization (pattern.sne,type="n1",normalization="row")
+  pattern.sne=as.matrix(pattern.sne);pattern.sne[is.nan(pattern.sne)]=0
+  
+  pattern.melt=melt(pattern.sne)
+  order=colnames(pattern.sne)
+  
+  p=ggplot(pattern.melt,aes(Var2))+theme_bw()+geom_path(aes(y=value,group=Var1),alpha=0.5,colour="darkblue")+xlab("Genotype")+scale_x_discrete(limit=order)+ylab("Relative Expression")+ggtitle("")+theme(axis.text.x=element_text(angle=-45,vjust=1,hjust=0,size=16),axis.title.x=element_text(size=18),axis.title.y=element_text(size=18),title=element_text(size=20))+ggtitle(k)
+  
+  # png(file=paste("Module",list," Genes Line Expression.png"),height=720,width=1280)
+  print(p)
+  # dev.off()
+  
+  p=ggplot(pattern.melt,aes(x=Var2))+theme_bw()+geom_boxplot(aes(y=value),outlier.size=1)+theme(axis.text.x=element_text(angle=90))+xlab("Introgression Line")+ylab("Relative Transcript Level")+ggtitle("")+scale_x_discrete(limit=order)+geom_hline(yintercept=c(-1,1),linetype=2,size=1)+theme(axis.text.x=element_text(angle=-90,vjust=.15,hjust=0,size=14))+theme(axis.text.y=element_text(size=14))+theme(axis.title.x=element_text(size=16))+theme(axis.title.y=element_text(size=16,vjust=1.3))+ggtitle(k)
+  
+  # png(file=paste("Module",list,"Boxplot Expression.png"),height=720,width=1280)
+  print(p)
+  # dev.off()
+}
+```
+```{r}
+write.csv(modules,"All-Weeks-Modules-3D-Testing.csv")
+# 
+```
+
+**Correlation of Modules**
+```{r}
+
+pecordata=data.frame()
+for(k in 1:mod.num){
+for(j in (k+1):mod.num){
+  if(j>mod.num){break}
+list=c(j)
+
+  
+  
+  Rdis.data.sne=modules
+  sub=as.data.frame(data$itag)
+  
+  Rdis.data.sne.sub=Rdis.data.sne[which(Rdis.data.sne$colors %in% list),]
+  Rdis.data.sne.sub$itag=rownames(Rdis.data.sne.sub)
+  
+  colnames(eqtl)=c("itag")
+  Rdis.data.sne.sub=Rdis.data.sne.sub[Rdis.data.sne.sub$itag %in% eqtl$itag,]
+  pattern.sne=data[which(data$itag %in% Rdis.data.sne.sub$itag),]
+  
+  rownames(pattern.sne)=pattern.sne$itag
+  pattern.sne=pattern.sne[,c(2:ncol(pattern.sne))]
+  
+  pattern.sne=log2(pattern.sne);pattern.sne=as.matrix(pattern.sne)
+  pattern.sne[is.infinite(pattern.sne)]=0
+  
+  pattern.sne=data.Normalization (pattern.sne,type="n1",normalization="row")
+  pattern.sne=as.matrix(pattern.sne);pattern.sne[is.nan(pattern.sne)]=0
+  
+  pattern.melt=melt(pattern.sne)
+  order=colnames(pattern.sne)
+  
+
+  #-----
+
+	#GENE EXPRESSION OVERLAY COMPARISON k=first module j=second module (Ribbon Graph)
+	list=c(k)
+	
+  Rdis.data.sne.sub=Rdis.data.sne[which(Rdis.data.sne$colors %in% list),]
+  Rdis.data.sne.sub$itag=rownames(Rdis.data.sne.sub)
+  	
+	pattern.sne2=data[which(data$itag %in% Rdis.data.sne.sub$itag),]
+	rownames(pattern.sne2)=pattern.sne2$itag
+	pattern.sne2=pattern.sne2[,c(2:ncol(pattern.sne2))]
+
+  pattern.sne2=log2(pattern.sne2);pattern.sne2=as.matrix(pattern.sne2)
+	pattern.sne2[is.infinite(pattern.sne2)]=0
+
+	pattern.sne2=data.Normalization (pattern.sne2,type="n1",normalization="row")
+	pattern.sne2=as.matrix(pattern.sne2);pattern.sne2[is.nan(pattern.sne2)]=0
+
+	pattern.median=as.data.frame(apply(pattern.sne,2,median));colnames(pattern.median)="value"
+	pattern.median$names=rownames(pattern.median)
+	pattern.median$value2=apply(pattern.sne2,2,median)
+	
+	pecor=cor.test(pattern.median$value,pattern.median$value2,method="pearson")
+
+
+pecordata=rbind(pecordata,pecor$estimate)
+
+	if(pecor$estimate>0.75){
+	  if(pecor$estimate<1){
+p=ggplot(pattern.median,aes(value2,value))+theme_bw()+geom_point(size=4)+stat_smooth(method="lm",colour="red",se=F,size=1.5)+theme(panel.grid.major=element_line(colour="black"))+theme(panel.grid.minor=element_line(colour="white"))+theme(panel.border=element_rect(colour="black"))+xlab(paste("Module",k))+ylab(paste("Module",j))
+print(p)
+}}
+	
+	if(pecor$estimate< -0.75){
+	  if(pecor$estimate> -1){
+	    p=ggplot(pattern.median,aes(value2,value))+theme_bw()+geom_point(size=4)+stat_smooth(method="lm",colour="red",se=F,size=1.5)+theme(panel.grid.major=element_line(colour="black"))+theme(panel.grid.minor=element_line(colour="white"))+theme(panel.border=element_rect(colour="black"))+xlab(paste("Module",k))+ylab(paste("Module",j))
+print(p)
+
+}}
+}}
+
+```

@@ -1,0 +1,16 @@
+Package: RSMod
+Type: Package
+Title: Creates a 2D or 3D mapping of RNA-Seq Data
+Version: 0.8.30
+Date: 2018-12-10
+Author: Steven D. Rowland
+Maintainer: "Steven D. Rowland" <srowland@ucdavis.edu>
+Description: Create a 2D or 3D mapping of normalized RNA-Seq data using BH-SNE and Optics
+License: GPL >= 2
+LazyLoad: yes
+Imports:
+    Rtsne,
+    dbscan,
+    clusterSim,
+    manipulate
+RoxygenNote: 6.1.0

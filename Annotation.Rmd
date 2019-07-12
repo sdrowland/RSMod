@@ -1,0 +1,22 @@
+---
+title: "Annotation"
+output: html_document
+---
+
+```{r}
+getwd()
+
+gene.list=read.csv("All-Weeks-Modules-3D-Whatever.csv",header=T)
+gene.list$Annotation=NA
+gene.list$itag=substr(gene.list$itag,1,14)
+
+ano.list=read.csv("ITAG3.0-annotation.csv",header=T)
+# colnames(ano.list)=c("itag","Annotation")
+ano.list$itag=substr(ano.list$itag,1,14)
+
+
+for(i in 1:nrow(ano.list)){if(ano.list$itag[i] %in% gene.list$itag){gene.list[which(gene.list$itag %in% ano.list$itag[i]),c("Annotation")]=ano.list[i,c("Annotation")]}}
+
+write.csv(gene.list,"Annotated-3D-Modules-Whatever.csv")
+
+```
