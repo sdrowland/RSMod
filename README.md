@@ -9,20 +9,20 @@ This R package was used in the published project: [Lignin-based resistance to Cu
 
 - Package Name: RSMod
 - Type: Package
-Title: Creates a 2D or 3D mapping of RNA-Seq Data
-Version: 0.8.30
-Date: 2018-12-10
-Author: Steven D. Rowland
-Maintainer: "Steven D. Rowland" <srowland@ucdavis.edu>
-Description: Create a 2D or 3D mapping of normalized RNA-Seq data using BH-SNE and Optics
-License: GPL >= 2
-LazyLoad: yes
-Imports:
+- Title: Creates a 2D or 3D mapping of RNA-Seq Data
+- Version: 0.8.30
+- Date: 2018-12-10
+- Author: Steven D. Rowland
+- Maintainer: "Steven D. Rowland" <srowland@ucdavis.edu>
+- Description: Create a 2D or 3D mapping of normalized RNA-Seq data using BH-SNE and Optics
+- License: GPL >= 2
+- LazyLoad: yes
+- Imports:
     Rtsne,
     dbscan,
     clusterSim,
     manipulate
-RoxygenNote: 6.1.0
+- RoxygenNote: 6.1.0
 
 ## Installation
 
