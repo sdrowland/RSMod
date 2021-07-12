@@ -7,8 +7,8 @@ This R package was used in the published project: [Lignin-based resistance to Cu
 
 ## Package description
 
-Package Name: RSMod
-Type: Package
+- Package Name: RSMod
+- Type: Package
 Title: Creates a 2D or 3D mapping of RNA-Seq Data
 Version: 0.8.30
 Date: 2018-12-10
