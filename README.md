@@ -56,5 +56,5 @@ Please replace "ITAG3.0-annotation.csv" with the gene annotation file for the sp
 
 - Package Author:
 [Steven D. Rowland](mailto:sdrowland@ucdavis.edu)
-- README Author:
+- README.md Author:
 [Min-Yao Jhu](mailto:minjhu@ucdavis.edu) 
